@@ -14,29 +14,91 @@ const loginRoute = require("./routes/login_register");
 const sendMessage = require("./routes/message");
 const data_anak = require("./routes/data_anak");
 const akun = require("./routes/akun");
-const tabel_data_status_gizi = require("./routes/tabel_data_status_gizi")
+const tabel_data_status_gizi = require("./routes/tabel_data_status_gizi");
 const vaksin = require("./routes/vaksin");
 const menajemen_gizi = require("./routes/menajemen_gizi");
 const rekomendasi_menu_makan = require("./routes/rekomendasi_menu_makan");
+const sendEmail = require("./routes/send_email");
+const { log } = require("console");
 
-
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 // Serve static files from the Flutter web app build directory
 //app.use(express.static('foto'))
 
+var socketClients = {};
+
 io.on("connection", (socket) => {
-  console.log("connected");
-  console.log("User : " + socket.id);
-  socket.on("test", (msg) => {
-    console.log(msg);
+  socket.on("signIn", (clientID) => {
+    socketClients[clientID] = socket;
+    //console.log("User " + clientID + " is Connected");
+
+    // Use socket.broadcast.emit to exclude the sender
+    socket.broadcast.emit("userConnected", { userId: clientID });
+  });
+
+  socket.on("disconnect", () => {
+    // Get the disconnected user's ID
+    const disconnectedUserId = Object.keys(socketClients).find(
+      (id) => socketClients[id] === socket
+    );
+    //console.log("User " + disconnectedUserId + " is DisConnected");
+    if (disconnectedUserId) {
+      // Remove the disconnected user from the list
+      delete socketClients[disconnectedUserId];
+
+      // Broadcast the disconnection event to all connected clients
+      socket.broadcast.emit("userDisconnected", { userId: disconnectedUserId });
+    }
+  });
+
+  socket.on("typing", (type) => {
+    let receiverID = type.receiverID;
+    let isTyping = type.isTyping;
+    if (socketClients[receiverID])
+      socketClients[receiverID].emit("typing", { isTyping: isTyping });
+  });
+
+  socket.on("messageReceive", (msg) => {
+    let messageId = msg.messageId;
+    let senderID = msg.senderID;
+    let receiverID = msg.receiverID;
+    if (socketClients[receiverID])
+      socketClients[receiverID].emit("messageReceive", {
+        messageId: messageId,
+        senderID: senderID,
+        receiverID: receiverID,
+      });
+  });
+
+  socket.on("messageRead", (msg) => {
+    let messageId = msg.messageId;
+    let senderID = msg.senderID;
+    let receiverID = msg.receiverID;
+    if (socketClients[receiverID])
+      socketClients[receiverID].emit("messageRead", {
+        messageId: messageId,
+        senderID: senderID,
+        receiverID: receiverID,
+      });
+  });
+
+  socket.on("messageReadList", (data) => {
+    let updates = data.updates;
+    let receiverID = data.receiverID;
+
+    if (socketClients[receiverID])
+      socketClients[receiverID].emit("messageReadList", {
+        datas: updates,
+      });
   });
 });
 
 (async () => {
   app.use("/", loginRoute);
   app.use("/", sendMessage);
+  app.use("/", sendEmail);
 
   app.use(verifyToken);
   app.use("/", akun);

@@ -43,8 +43,7 @@ router.post("/send_message", async (req, res) => {
     if (image !== null && image !== "") {
       const buffer = Buffer.from(image, "base64");
       const compressedBuffer = await sharp(buffer)
-        //.resize({ width: 500 })
-        .jpeg({ quality: 70 })
+        .jpeg({ quality: 60 })
         .toBuffer();
       compressedBase64 = compressedBuffer.toString("base64");
       //console.log("Image compressed successfully");
@@ -71,24 +70,30 @@ router.post("/send_message", async (req, res) => {
           console.error(error);
           return;
         }
-        const messages = {
-          notification: {
-            title: title,
-            body: message,
-          },
-          data: { senderID: id_receiver, receiverID: id_sender },
-          token: fcm_token,
-        };
-        await admin
-          .messaging()
-          .send(messages)
-          .then((response) => {
-            //console.log("Successfully sent message:", response);
-            res.status(200).json({ message: "Pesan Terkirim" });
+        getFcmTokenByUserId(id_receiver)
+          .then(async (fcmToken) => {
+            const messages = {
+              notification: {
+                title: title,
+                body: message,
+              },
+              data: { id_message : id_message,senderID: id_receiver, receiverID: id_sender },
+              token: fcmToken,
+            };
+            await admin
+              .messaging()
+              .send(messages)
+              .then((response) => {
+                //console.log("Successfully sent message:", response);
+                res.status(200).json({ message: "Pesan Terkirim" });
+              })
+              .catch((error) => {
+                console.error("Error sending message:", error);
+                res.status(500).json({ error: error });
+              });
           })
           .catch((error) => {
-            console.error("Error sending message:", error);
-            res.status(500).json({ error: error });
+            console.error("Error:", error);
           });
       }
     );
@@ -97,6 +102,22 @@ router.post("/send_message", async (req, res) => {
     res.status(500).json({ error: error });
   }
 });
+
+function getFcmTokenByUserId(userId) {
+  return new Promise((resolve, reject) => {
+    const query = "SELECT fcm_token FROM users WHERE userID = ?";
+
+    db.query(query, userId, (error, results) => {
+      if (error) {
+        console.error(error);
+        reject(error);
+        return;
+      }
+
+      resolve(results.length > 0 ? results[0].fcm_token : null);
+    });
+  });
+}
 
 router.get("/get_list_health_worker", async (req, res) => {
   try {

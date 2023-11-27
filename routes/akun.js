@@ -24,16 +24,18 @@ router.get("/get_data_user", async (req, res) => {
 router.post("/update_foto", async (req, res) => {
   try {
     const { userID, foto } = req.body;
-
-    const buffer = Buffer.from(foto, "base64");
-    // Resize and compress image
-    const compressedBuffer = await sharp(buffer)
-      //.resize({ width: 500 })
-      .jpeg({ quality: 70 })
-      .toBuffer();
-
-    // Convert compressed buffer to base64 string
-    const compressedBase64 = compressedBuffer.toString("base64");
+    let compressedBase64 = "";
+    if (foto !== null && foto !== "") {
+      const buffer = Buffer.from(foto, "base64");
+      const compressedBuffer = await sharp(buffer)
+        .resize(400, 400)
+        .jpeg({ quality: 45 })
+        .toBuffer();
+      compressedBase64 = compressedBuffer.toString("base64");
+      //console.log("Image compressed successfully");
+    } else {
+      compressedBase64 = foto;
+    }
     const query = "UPDATE users SET foto=? WHERE userID = ?";
     db.query(query, [compressedBase64, userID], (error, results) => {
       if (error) {
@@ -74,7 +76,7 @@ router.post("/update_nomor", async (req, res) => {
     db.query(query, [no_hp, userID], (error, results) => {
       if (error) {
         console.error(error);
-        res.status(500).json({ error: "An error occurred" });
+        res.status(500).json({ error: "Nomer Sudah Digunakan" });
         return;
       }
       res.status(200).json({ message: "Data Berhasil Diubah" });
@@ -92,7 +94,7 @@ router.post("/update_email", async (req, res) => {
     db.query(query, [email, userID], (error, results) => {
       if (error) {
         console.error(error);
-        res.status(500).json({ error: "An error occurred" });
+        res.status(500).json({ error: "Email Sudah Digunakan" });
         return;
       }
       res.status(200).json({ message: "Data Berhasil Diubah" });
@@ -156,6 +158,8 @@ router.post("/hapus_akun", async (req, res) => {
     const { userID } = req.body;
     const queryAkun = "DELETE FROM users WHERE userID = ?";
     const queryDataAnak = "DELETE FROM data_anak WHERE userID = ?";
+    const queryMenuMakan = "DELETE FROM menu_makan WHERE userID = ?";
+    const queryVaksin = "DELETE FROM jadwal_vaksin WHERE userID = ?";
     db.query(queryDataAnak, userID, (error, results) => {
       if (error) {
         console.error(error);
@@ -168,7 +172,21 @@ router.post("/hapus_akun", async (req, res) => {
           res.status(500).json({ error: "An error occurred" });
           return;
         }
-        res.status(200).json({ message: "Data Akun Berhasil Dihapus" });
+        db.query(queryMenuMakan, userID, (error, results) => {
+          if (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred" });
+            return;
+          }
+          db.query(queryVaksin, userID, (error, results) => {
+            if (error) {
+              console.error(error);
+              res.status(500).json({ error: "An error occurred" });
+              return;
+            }
+            res.status(200).json({ message: "Data Akun Berhasil Dihapus" });
+          });
+        });
       });
     });
   } catch (error) {

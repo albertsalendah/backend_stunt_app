@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
 const { db } = require("../utils/connections");
+const sharp = require("sharp");
 
 function makeid(length) {
   let result = "";
@@ -30,6 +31,18 @@ router.post("/register", async (req, res) => {
       keterangan,
       health_worker,
     } = req.body;
+    let compressedBase64 = "";
+    if (foto !== null && foto !== "") {
+      const buffer = Buffer.from(foto, "base64");
+      const compressedBuffer = await sharp(buffer)
+        .resize(400, 400)
+        .jpeg({ quality: 45 })
+        .toBuffer();
+      compressedBase64 = compressedBuffer.toString("base64");
+      //console.log("Image compressed successfully");
+    } else {
+      compressedBase64 = foto;
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const query =
       "INSERT INTO users (userID, nama, no_hp, email, password,fcm_token,foto,keterangan,health_worker) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -42,7 +55,7 @@ router.post("/register", async (req, res) => {
         email,
         hashedPassword,
         fcm_token,
-        foto,
+        compressedBase64,
         keterangan,
         health_worker,
       ],

@@ -54,10 +54,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("typing", (type) => {
+    let senderID = type.senderID;
     let receiverID = type.receiverID;
     let isTyping = type.isTyping;
     if (socketClients[receiverID])
-      socketClients[receiverID].emit("typing", { isTyping: isTyping });
+      socketClients[receiverID].emit("typing", {
+        isTyping: isTyping,
+        senderID: senderID,
+      });
   });
 
   socket.on("messageReceive", (msg) => {

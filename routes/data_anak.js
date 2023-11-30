@@ -34,9 +34,9 @@ router.get("/get_data_anak", async (req, res) => {
 
 router.get("/get_detail_anak", async (req, res) => {
   try {
-    const { userID,id_anak } = req.body;
+    const { userID, id_anak } = req.body;
     const query = "SELECT * FROM data_anak WHERE userID = ? AND id_anak = ?";
-    db.query(query, [userID,id_anak], (error, results) => {
+    db.query(query, [userID, id_anak], (error, results) => {
       if (error) {
         console.error(error);
         return;
@@ -51,6 +51,7 @@ router.get("/get_detail_anak", async (req, res) => {
 
 router.post("/insert_data_anak", async (req, res) => {
   try {
+    const id_anak = makeid(32);
     const {
       userID,
       nama_anak,
@@ -66,7 +67,7 @@ router.post("/insert_data_anak", async (req, res) => {
     db.query(
       query,
       [
-        makeid(32),
+        id_anak,
         userID,
         nama_anak,
         jenis_kelamin,
@@ -81,7 +82,18 @@ router.post("/insert_data_anak", async (req, res) => {
           console.error(error);
           return;
         }
-        res.status(200).json({ message: "Data Anak Berhasil Disimpan" });
+        const query =
+          "SELECT * FROM data_anak WHERE userID = ? AND id_anak = ?";
+        db.query(query, [userID, id_anak], (error, resultsAnak) => {
+          if (error) {
+            console.error(error);
+            return;
+          }
+          res.status(200).json({
+            message: "Data Anak Berhasil Disimpan",
+            dataAnak: resultsAnak[0],
+          });
+        });
       }
     );
   } catch (error) {

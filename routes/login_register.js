@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 const router = express.Router();
 const { db } = require("../utils/connections");
 const sharp = require("sharp");
+const multer = require("multer");
+const upload = multer({ dest: "ProfilePicture/" });
+const fs = require("fs");
 
 function makeid(length) {
   let result = "";
@@ -19,7 +22,7 @@ function makeid(length) {
   return result;
 }
 
-router.post("/register", async (req, res) => {
+router.post("/register", upload.single("foto"), async (req, res) => {
   try {
     const {
       nama,
@@ -27,35 +30,42 @@ router.post("/register", async (req, res) => {
       email,
       password,
       fcm_token,
-      foto,
       keterangan,
       health_worker,
     } = req.body;
-    let compressedBase64 = "";
-    if (foto !== null && foto !== "") {
-      const buffer = Buffer.from(foto, "base64");
-      const compressedBuffer = await sharp(buffer)
-        .resize(400, 400)
-        .jpeg({ quality: 45 })
+    const uniqueId = makeid(32);
+    let fotoPath = ""; // Initialize the file path
+    if (req.file) {
+      const imagePath = req.file.path;
+      const compressedBuffer = await sharp(imagePath)
+        .jpeg({ quality: 40 })
         .toBuffer();
-      compressedBase64 = compressedBuffer.toString("base64");
-      //console.log("Image compressed successfully");
-    } else {
-      compressedBase64 = foto;
+      const currentDate = new Date();
+      const dateString = currentDate.toISOString().replace(/[-T:]/g, "");
+      const newFileName = `${uniqueId}_${dateString}.jpg`;
+
+      const newPath = `ProfilePicture/${newFileName}`;
+      await fs.promises.writeFile(newPath, compressedBuffer);
+
+      fotoPath = newPath;
+
+      // Remove the original uploaded file
+      await fs.promises.unlink(imagePath);
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const query =
       "INSERT INTO users (userID, nama, no_hp, email, password,fcm_token,foto,keterangan,health_worker) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     db.query(
       query,
       [
-        makeid(32),
+        uniqueId,
         nama,
         no_hp,
         email,
         hashedPassword,
         fcm_token,
-        compressedBase64,
+        fotoPath,
         keterangan,
         health_worker,
       ],

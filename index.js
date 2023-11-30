@@ -21,11 +21,17 @@ const rekomendasi_menu_makan = require("./routes/rekomendasi_menu_makan");
 const sendEmail = require("./routes/send_email");
 const { log } = require("console");
 
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
-// Serve static files from the Flutter web app build directory
-//app.use(express.static('foto'))
+
+// Serve static files from ProfilePicture directory
+app.use('/ProfilePicture',express.static('ProfilePicture'))
+app.use('/messages_file',express.static('messages_file'))
+// app.use((req, res, next) => {
+//   console.log(`Received request: ${req.method} ${req.url}`);
+//   next();
+// });
 
 var socketClients = {};
 
@@ -98,6 +104,7 @@ io.on("connection", (socket) => {
       });
   });
 });
+
 
 (async () => {
   app.use("/", loginRoute);

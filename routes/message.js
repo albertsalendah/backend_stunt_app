@@ -3,6 +3,9 @@ const express = require("express");
 const router = express.Router();
 const sharp = require("sharp");
 const { db } = require("../utils/connections");
+const multer = require("multer");
+const upload = multer({ dest: "messages_file/" });
+const fs = require("fs");
 
 function makeid(length) {
   let result = "";
@@ -23,7 +26,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-router.post("/send_message", async (req, res) => {
+router.post("/send_message", upload.single("image"), async (req, res) => {
   try {
     const {
       id_message,
@@ -33,22 +36,21 @@ router.post("/send_message", async (req, res) => {
       tanggal_kirim,
       jam_kirim,
       message,
-      image,
       messageRead,
       fcm_token,
       title,
-      //messageModel,
     } = req.body;
-    let compressedBase64 = "";
-    if (image !== null && image !== "") {
-      const buffer = Buffer.from(image, "base64");
-      const compressedBuffer = await sharp(buffer)
-        .jpeg({ quality: 60 })
+    let fotoPath = ""; // Initialize the file path
+    if (req.file) {
+      const imagePath = req.file.path;
+      const compressedBuffer = await sharp(imagePath)
+        .jpeg({ quality: 100 })
         .toBuffer();
-      compressedBase64 = compressedBuffer.toString("base64");
-      //console.log("Image compressed successfully");
-    } else {
-      compressedBase64 = image;
+      const newFileName = `${id_message}.jpg`;
+      const newPath = `messages_file/${newFileName}`;
+      await fs.promises.writeFile(newPath, compressedBuffer);
+      fotoPath = newPath;
+      await fs.promises.unlink(imagePath);
     }
     const query =
       "INSERT INTO `messages`(`id_message`, `conversation_id`,`id_sender`, `id_receiver`, `tanggal_kirim`, `jam_kirim`, `message`, `image`, `messageRead`) VALUES (?,?,?,?,?,?,?,?,?)";
@@ -62,7 +64,7 @@ router.post("/send_message", async (req, res) => {
         tanggal_kirim,
         jam_kirim,
         message,
-        image,
+        fotoPath,
         messageRead,
       ],
       async (error, results) => {
@@ -77,7 +79,11 @@ router.post("/send_message", async (req, res) => {
                 title: title,
                 body: message,
               },
-              data: { id_message : id_message,senderID: id_receiver, receiverID: id_sender },
+              data: {
+                id_message: id_message,
+                senderID: id_receiver,
+                receiverID: id_sender,
+              },
               token: fcmToken,
             };
             await admin
@@ -211,6 +217,20 @@ router.post("/delete_single_chat", async (req, res) => {
         res.status(500).json({ error: "An error occurred" });
         return;
       }
+      fs.readdir("./messages_file", (err, files) => {
+        if (err) {
+          console.error("Error reading directory:", err);
+          return;
+        }
+        const filePath = `./messages_file/${id_message}.jpg`;
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.error("File deletion error:", err);
+            }
+          });
+        }
+      });
       res.status(200).json({ message: "Chat Berhasil Dihapus" });
     });
   } catch (error) {

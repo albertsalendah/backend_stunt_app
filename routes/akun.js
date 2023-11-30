@@ -3,6 +3,9 @@ const router = express.Router();
 const { db } = require("../utils/connections");
 const bcrypt = require("bcrypt");
 const sharp = require("sharp");
+const multer = require("multer");
+const upload = multer({ dest: "ProfilePicture/" });
+const fs = require("fs");
 
 router.get("/get_data_user", async (req, res) => {
   try {
@@ -21,23 +24,34 @@ router.get("/get_data_user", async (req, res) => {
   }
 });
 
-router.post("/update_foto", async (req, res) => {
+router.post("/update_foto", upload.single("foto"), async (req, res) => {
   try {
-    const { userID, foto } = req.body;
-    let compressedBase64 = "";
-    if (foto !== null && foto !== "") {
-      const buffer = Buffer.from(foto, "base64");
-      const compressedBuffer = await sharp(buffer)
-        .resize(400, 400)
-        .jpeg({ quality: 45 })
+    const { userID, oldpath } = req.body;
+    if (oldpath != null && oldpath != "") {
+      if (fs.existsSync(oldpath)) {
+        fs.unlink(oldpath, (err) => {
+          if (err) {
+            console.error("File deletion error:", err);
+          }
+        });
+      }
+    }
+    let fotoPath = ""; // Initialize the file path
+    if (req.file) {
+      const imagePath = req.file.path;
+      const compressedBuffer = await sharp(imagePath)
+        .jpeg({ quality: 40 })
         .toBuffer();
-      compressedBase64 = compressedBuffer.toString("base64");
-      //console.log("Image compressed successfully");
-    } else {
-      compressedBase64 = foto;
+      const currentDate = new Date();
+      const dateString = currentDate.toISOString().replace(/[-T:]/g, "");
+      const newFileName = `${userID}_${dateString}.jpg`;
+      const newPath = `ProfilePicture/${newFileName}`;
+      await fs.promises.writeFile(newPath, compressedBuffer);
+      fotoPath = newPath;
+      await fs.promises.unlink(imagePath);
     }
     const query = "UPDATE users SET foto=? WHERE userID = ?";
-    db.query(query, [compressedBase64, userID], (error, results) => {
+    db.query(query, [fotoPath, userID], (error, results) => {
       if (error) {
         console.error(error);
         res.status(500).json({ error: "An error occurred" });
@@ -184,6 +198,29 @@ router.post("/hapus_akun", async (req, res) => {
               res.status(500).json({ error: "An error occurred" });
               return;
             }
+
+            fs.readdir('./ProfilePicture', (err, files) => {
+              if (err) {
+                console.error('Error reading directory:', err);
+                return;
+              }
+            
+              // Filter files based on the search string
+              const matchingFiles = files.filter(file => file.includes(userID));
+            
+              // Delete each matching file
+              matchingFiles.forEach(file => {
+                const filePath = `./ProfilePicture/${file}`;
+            
+                fs.unlink(filePath, err => {
+                  if (err) {
+                    console.error('Error deleting file:', err);
+                  } else {
+                    console.log(`File ${file} deleted successfully.`);
+                  }
+                });
+              });
+            });
             res.status(200).json({ message: "Data Akun Berhasil Dihapus" });
           });
         });

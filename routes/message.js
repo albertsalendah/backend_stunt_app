@@ -44,7 +44,7 @@ router.post("/send_message", upload.single("image"), async (req, res) => {
     if (req.file) {
       const imagePath = req.file.path;
       const compressedBuffer = await sharp(imagePath)
-        .jpeg({ quality: 100 })
+        .jpeg({ quality: 90 })
         .toBuffer();
       const newFileName = `${id_message}.jpg`;
       const newPath = `messages_file/${newFileName}`;
@@ -141,7 +141,7 @@ router.get("/get_list_health_worker", async (req, res) => {
   }
 });
 
-router.get("/get_latest_self_message", async (req, res) => {
+router.post("/get_latest_self_message", async (req, res) => {
   try {
     const { userID } = req.body;
     const query = `SELECT m.*, DATE_FORMAT(m.tanggal_kirim, '%Y-%m-%d %H:%i:%s') AS tanggal_kirim
@@ -169,7 +169,7 @@ router.get("/get_latest_self_message", async (req, res) => {
   }
 });
 
-router.get("/get_data_user_message", async (req, res) => {
+router.post("/get_data_user_message", async (req, res) => {
   try {
     const { userID } = req.body;
 

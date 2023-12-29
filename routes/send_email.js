@@ -42,7 +42,7 @@ router.post("/send_email", async (req, res) => {
   });
 });
 
-router.get("/get_user_byNo", async (req, res) => {
+router.post("/get_user_byNo", async (req, res) => {
   try {
     const { noHp } = req.body;
     const query =

@@ -15,7 +15,7 @@ function makeid(length) {
   return result;
 }
 
-router.get("/get_data_anak", async (req, res) => {
+router.post("/get_data_anak", async (req, res) => {
   try {
     const { userID } = req.body;
     const query = "SELECT * FROM data_anak WHERE userID = ?";
@@ -32,7 +32,7 @@ router.get("/get_data_anak", async (req, res) => {
   }
 });
 
-router.get("/get_detail_anak", async (req, res) => {
+router.post("/get_detail_anak", async (req, res) => {
   try {
     const { userID, id_anak } = req.body;
     const query = "SELECT * FROM data_anak WHERE userID = ? AND id_anak = ?";

@@ -7,7 +7,8 @@ const db = mysql.createPool({
     user: process.env.DB_USER,
     password:process.env.DB_PASSWORD,
     database:'stunt_app',
-    charset : 'utf8mb4'
+    charset : 'utf8mb4',
+    //socketPath: '/cloudsql/stuntapp:asia-southeast2:stunt-app'
 })
 
 module.exports = {

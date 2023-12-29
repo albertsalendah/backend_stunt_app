@@ -7,7 +7,7 @@ const multer = require("multer");
 const upload = multer({ dest: "ProfilePicture/" });
 const fs = require("fs");
 
-router.get("/get_data_user", async (req, res) => {
+router.post("/get_data_user", async (req, res) => {
   try {
     const { userID } = req.body;
     const query = "SELECT * FROM users WHERE userID = ?";

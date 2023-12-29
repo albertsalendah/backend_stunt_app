@@ -15,7 +15,7 @@ function makeid(length) {
   return result;
 }
 
-router.get("/list_rekomendasi_menu_makan", async (req, res) => {
+router.post("/list_rekomendasi_menu_makan", async (req, res) => {
   try {
     const { user_id } = req.body;
     const query = "SELECT * FROM rekomendasi_menu_makan WHERE user_id = ? ";

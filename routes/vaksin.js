@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { db } = require("../utils/connections");
 
-router.get("/jadwalvaksin", async (req, res) => {
+router.post("/jadwalvaksin", async (req, res) => {
   try {
     const currentDate = new Date().toISOString().split("T")[0];
     const { userID, id_anak } = req.body;
@@ -22,7 +22,7 @@ router.get("/jadwalvaksin", async (req, res) => {
   }
 });
 
-router.get("/daftarvaksin", async (req, res) => {
+router.post("/daftarvaksin", async (req, res) => {
   try {
     const { umur } = req.body;
     const query =

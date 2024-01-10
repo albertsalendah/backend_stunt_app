@@ -12,7 +12,7 @@ const config = {
   secure: false,
   auth: {
     user: process.env.EMAIL_HOST,
-    pass: process.env.MAIL,
+    pass: process.env.MAILPASS,
   },
 };
 
